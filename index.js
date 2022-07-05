@@ -172,7 +172,76 @@ const addRoles = () => {
 	});
 };
 
-const addemployee = () => {};
+const addemployee = () => {
+	db.query("SELECT * FROM employee", function (err, employeeResults) {
+		if (err) throw err;
+		db.query("SELECT * FROM roles", function (err, rolesResults) {
+			if (err) throw err;
+			inquirer
+				.prompt([
+					{
+						type: "input",
+						name: "addFirstName",
+						message: "What is the employee's first name?",
+					},
+					{
+						type: "input",
+						name: "addLastName",
+						message: "What is the employee's last name?",
+					},
+					{
+						type: "list",
+						name: "addRole",
+						message: "What is the employee's role?",
+						choices: function () {
+							const roleName = [];
+							for (role of rolesResults) {
+								roleName.push(role.title);
+							}
+							return roleName;
+						},
+					},
+					{
+						type: "list",
+						name: "addManager",
+						message: "Who is the employee's manager?",
+						choices: function () {
+							const managerName = [];
+							for (manager of employeeResults) {
+								managerName.push(manager.first_name + " " + manager.last_name);
+							}
+							return managerName;
+						},
+					},
+				])
+				.then(({ addFirstName, addLastName, addRole, addManager }) => {
+					let roles_id;
+					let managers_id;
+					for (role of rolesResults) {
+						if (role.title === addRole) {
+							roles_id = role.id;
+						}
+					}
+					for (employee of employeeResults) {
+						if (employee.first_name + " " + employee.last_name === addManager) {
+							managers_id = employee.id;
+						}
+					}
+					db.query(
+						`INSERT INTO employee (first_name, last_name, role_id, manager_id)
+					VALUE("${addFirstName}", "${addLastName}", ${roles_id}, ${managers_id})`,
+						(err) => {
+							if (err) throw err;
+							console.log(
+								`Added ${addFirstName} ${addLastName} to the database`
+							);
+							init();
+						}
+					);
+				});
+		});
+	});
+};
 
 const updateRoles = () => {};
 
