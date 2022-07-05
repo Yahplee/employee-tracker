@@ -1,10 +1,13 @@
+// to hide MYSQL info
 require("dotenv").config();
 
+// dependencies
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 const consoleTable = require("console.table");
 const figlet = require("figlet");
 
+// ascii text art
 console.log(
 	figlet.textSync("Employee Tracker", {
 		font: "Standard",
@@ -19,7 +22,7 @@ console.log(
 const db = mysql.createConnection(
 	{
 		host: "localhost",
-		// MySQL username,
+		// MySQL username
 		user: process.env.DB_USER,
 		// MySQL password
 		password: process.env.DB_PASSWORD,
@@ -78,7 +81,7 @@ const init = () => {
 		});
 };
 
-// function for viewing department with the query selecting from the department table
+// function for viewing department list with the query selecting from the department table
 const viewDepartment = () => {
 	db.query("SELECT * FROM department", function (err, results) {
 		if (err) throw err;
@@ -87,6 +90,7 @@ const viewDepartment = () => {
 	});
 };
 
+// function for viewing roles list with the query selecting from the roles table
 const viewRoles = () => {
 	db.query(
 		`SELECT roles.id, roles.title, roles.salary, department.department_name
@@ -100,6 +104,7 @@ const viewRoles = () => {
 	);
 };
 
+// function for viewing employee list with the query selecting from the employee table
 const viewEmployees = () => {
 	db.query(
 		`SELECT employee.id, employee.first_name, employee.last_name, roles.title, department.department_name AS department, roles.salary, CONCAT(manager.first_name," ", manager.last_name) AS manager
@@ -115,6 +120,7 @@ const viewEmployees = () => {
 	);
 };
 
+// function for adding department with the query inserting into the department table
 const addDepartment = () => {
 	inquirer
 		.prompt([
@@ -138,6 +144,7 @@ const addDepartment = () => {
 		});
 };
 
+// function for adding roles with the query inserting a new role into the roles table
 const addRoles = () => {
 	db.query("SELECT * FROM department", function (err, results) {
 		if (err) throw err;
@@ -157,6 +164,8 @@ const addRoles = () => {
 					type: "list",
 					name: "addExistDepartment",
 					message: "Which department does the role belong to?",
+					// will need to dynamically render the list of department names
+					// will need to refernce to the department list
 					choices: function () {
 						const departmentName = [];
 						for (department of results) {
@@ -166,6 +175,7 @@ const addRoles = () => {
 					},
 				},
 			])
+			// need to set the entered department equal to the department id
 			.then(({ addRoleName, addSalary, addExistDepartment }) => {
 				let department_id;
 				for (department of results) {
@@ -173,6 +183,7 @@ const addRoles = () => {
 						department_id = department.id;
 					}
 				}
+				// will need to insert the department name and render it in the roles table
 				db.query(
 					`INSERT INTO roles (title, salary, department_id)
 					 VALUE("${addRoleName}", "${addSalary}", ${department_id})`,
@@ -186,6 +197,7 @@ const addRoles = () => {
 	});
 };
 
+// function for adding an employee with the query inserting a new employee with first and last name, role, and manager
 const addemployee = () => {
 	db.query("SELECT * FROM employee", function (err, employeeResults) {
 		if (err) throw err;
@@ -257,6 +269,7 @@ const addemployee = () => {
 	});
 };
 
+// function for updating and employee's role with the query targeting the employee table's role id
 const updateRoles = () => {
 	db.query("SELECT * FROM employee", function (err, employeeResults) {
 		if (err) throw err;
