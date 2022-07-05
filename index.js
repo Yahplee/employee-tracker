@@ -1,24 +1,18 @@
-const dotenv = require("dotenv");
+require("dotenv").config();
+
 const inquirer = require("inquirer");
-const express = require("express");
 const mysql = require("mysql2");
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-// Express middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+const consoleTable = require("console.table");
 
 // Connect to database
 const db = mysql.createConnection(
 	{
 		host: "localhost",
 		// MySQL username,
-		user: DB_USER,
+		user: process.env.DB_USER,
 		// MySQL password
-		password: DB_PASSWORD,
-		database: DB_NAME,
+		password: process.env.DB_PASSWORD,
+		database: process.env.DB_NAME,
 	},
 	console.log(`Connected to the employee_db database.`)
 );
@@ -38,11 +32,12 @@ const init = () => {
 					"Add a Role",
 					"Add an Employee",
 					"Update an Employee Role",
+					"Quit",
 				],
 			},
 		])
 		.then((answer) => {
-			switch (answer.choices) {
+			switch (answer.role) {
 				case "View All Departments":
 					viewDepartment();
 					break;
@@ -52,27 +47,59 @@ const init = () => {
 				case "View All Employees":
 					viewEmployees();
 					break;
-				case "Add a Departments":
+				case "Add a Department":
 					addDepartment();
 					break;
 				case "Add a Role":
 					addRoles();
 					break;
-				case "Add an Employees":
+				case "Add an Employee":
 					addemployee();
 					break;
 				case "Update an Employee Role":
 					updateRoles();
 					break;
+				case "Quit":
+					process.exit();
 			}
 		});
 };
 
-const viewDepartment = () => {};
+const viewDepartment = () => {
+	db.query("SELECT * FROM department", function (err, results) {
+		if (err) throw err;
+		console.table(results);
+		init();
+	});
+};
 
-const viewRoles = () => {};
+const viewRoles = () => {
+	db.query(
+		`SELECT roles.id, roles.title, roles.salary, department.department_name
+		 FROM roles
+		 JOIN department ON roles.department_id=department.id`,
+		(err, results) => {
+			if (err) throw err;
+			console.table(results);
+			init();
+		}
+	);
+};
 
-const viewEmployees = () => {};
+const viewEmployees = () => {
+	db.query(
+		`SELECT employee.id, employee.first_name, employee.last_name, roles.title, department.department_name AS department, roles.salary, CONCAT(manager.first_name," ", manager.last_name) AS manager
+		 FROM employee 
+		 LEFT JOIN roles ON employee.role_id=roles.id
+		 LEFT JOIN department ON roles.department_id=department.id
+		 LEFT JOIN employee manager on employee.manager_id=manager.id`,
+		(err, results) => {
+			if (err) throw err;
+			console.table(results);
+			init();
+		}
+	);
+};
 
 const addDepartment = () => {
 	inquirer
@@ -83,57 +110,21 @@ const addDepartment = () => {
 				message: "What department would you like to add?",
 			},
 		])
-		.then();
+		.then(({ addDepartmentName }) => {
+			console.log(addDepartmentName);
+			db.query(
+				`INSERT INTO department (department_name)
+				 VALUE("${addDepartmentName}")`,
+				(err) => {
+					if (err) throw err;
+					console.log(`Added ${addDepartmentName} to the database`);
+					init();
+				}
+			);
+		});
 };
 
-const addRoles = () => {
-	inquirer.prompt([
-		{
-			type: "input",
-			name: "addRoleName",
-			message: "What is the name of the role?",
-		},
-		{
-			type: "input",
-			name: "addSalary",
-			message: "What is the salary of the role?",
-		},
-		{
-			type: "list",
-			name: "addDepartment",
-			message: "Which department does the role belong to?",
-			choices:
-				"SOMETHING HERE THAT LISTS OUT THE DEPARTMENT LIST FROM DATABASE",
-		},
-	]);
-};
-
-const addemployee = () => {
-	inquirer.prompt([
-		{
-			type: "input",
-			name: "addFirstName",
-			message: "What is the employee's first name?",
-		},
-		{
-			type: "input",
-			name: "addLastName",
-			message: "What is the employee's last name?",
-		},
-		{
-			type: "list",
-			name: "addRole",
-			message: "What is the employee's role?",
-			choices: "SOMETHING HERE THAT LISTS OUT THE ROLES LIST FROM DATABASE",
-		},
-		{
-			type: "list",
-			name: "addManager",
-			message: "Who is the employee's manager?",
-			choices: "SOMETHING HERE THAT LISTS OUT THE MANAGER LIST FROM DATABASE",
-		},
-	]);
-};
+const addRoles = () => {};
 
 const updateRoles = () => {};
 
@@ -151,11 +142,6 @@ const updateRoles = () => {};
 // db.query("SELECT * FROM books", function (err, results) {
 // 	console.log(results);
 // });
-
-// Default response for any other request (Not Found)
-app.use((req, res) => {
-	res.status(404).end();
-});
 
 // initialization function
 init();
