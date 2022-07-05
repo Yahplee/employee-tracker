@@ -124,7 +124,55 @@ const addDepartment = () => {
 		});
 };
 
-const addRoles = () => {};
+const addRoles = () => {
+	db.query("SELECT * FROM department", function (err, results) {
+		if (err) throw err;
+		inquirer
+			.prompt([
+				{
+					type: "input",
+					name: "addRoleName",
+					message: "What is the name of the role?",
+				},
+				{
+					type: "input",
+					name: "addSalary",
+					message: "What is the salary of the role?",
+				},
+				{
+					type: "list",
+					name: "addExistDepartment",
+					message: "Which department does the role belong to?",
+					choices: function () {
+						const departmentName = [];
+						for (department of results) {
+							departmentName.push(department.department_name);
+						}
+						return departmentName;
+					},
+				},
+			])
+			.then(({ addRoleName, addSalary, addExistDepartment }) => {
+				let department_id;
+				for (department of results) {
+					if (department.department_name === addExistDepartment) {
+						department_id = department.id;
+					}
+				}
+				db.query(
+					`INSERT INTO roles (title, salary, department_id)
+					 VALUE("${addRoleName}", "${addSalary}", ${department_id})`,
+					(err) => {
+						if (err) throw err;
+						console.log(`Added ${addRoleName} to the database`);
+						init();
+					}
+				);
+			});
+	});
+};
+
+const addemployee = () => {};
 
 const updateRoles = () => {};
 
