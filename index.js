@@ -3,6 +3,17 @@ require("dotenv").config();
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 const consoleTable = require("console.table");
+const figlet = require("figlet");
+
+console.log(
+	figlet.textSync("Employee Tracker", {
+		font: "Standard",
+		horizontalLayout: "fitted",
+		verticalLayout: "fitted",
+		width: 80,
+		whitespaceBreak: true,
+	})
+);
 
 // Connect to database
 const db = mysql.createConnection(
@@ -17,6 +28,7 @@ const db = mysql.createConnection(
 	console.log(`Connected to the employee_db database.`)
 );
 
+// init function for the main menu
 const init = () => {
 	inquirer
 		.prompt([
@@ -36,6 +48,7 @@ const init = () => {
 				],
 			},
 		])
+		// runs each function depending on choices from the init prompt
 		.then((answer) => {
 			switch (answer.role) {
 				case "View All Departments":
@@ -65,6 +78,7 @@ const init = () => {
 		});
 };
 
+// function for viewing department with the query selecting from the department table
 const viewDepartment = () => {
 	db.query("SELECT * FROM department", function (err, results) {
 		if (err) throw err;
@@ -229,7 +243,7 @@ const addemployee = () => {
 					}
 					db.query(
 						`INSERT INTO employee (first_name, last_name, role_id, manager_id)
-					VALUE("${addFirstName}", "${addLastName}", ${roles_id}, ${managers_id})`,
+						 VALUE("${addFirstName}", "${addLastName}", ${roles_id}, ${managers_id})`,
 						(err) => {
 							if (err) throw err;
 							console.log(
@@ -243,22 +257,70 @@ const addemployee = () => {
 	});
 };
 
-const updateRoles = () => {};
-
-// Query database
-// let deletedRow = 2;
-
-// db.query(`DELETE FROM books WHERE id = ?`, [deletedRow], (err, result) => {
-// 	if (err) {
-// 		console.log(err);
-// 	}
-// 	console.log(result);
-// });
-
-// // Query database
-// db.query("SELECT * FROM books", function (err, results) {
-// 	console.log(results);
-// });
+const updateRoles = () => {
+	db.query("SELECT * FROM employee", function (err, employeeResults) {
+		if (err) throw err;
+		db.query("SELECT * FROM roles", function (err, rolesResults) {
+			if (err) throw err;
+			inquirer
+				.prompt([
+					{
+						type: "list",
+						name: "chooseEmployeeName",
+						message: "Which employee's role would you want to update?",
+						choices: function () {
+							const employeeName = [];
+							for (employee of employeeResults) {
+								employeeName.push(
+									employee.first_name + " " + employee.last_name
+								);
+							}
+							return employeeName;
+						},
+					},
+					{
+						type: "list",
+						name: "updateEmployeeRole",
+						message: "What is the selected employee's new role?",
+						choices: function () {
+							const employeeRole = [];
+							for (updateRole of rolesResults) {
+								employeeRole.push(updateRole.title);
+							}
+							return employeeRole;
+						},
+					},
+				])
+				.then(({ chooseEmployeeName, updateEmployeeRole }) => {
+					let employee_id;
+					let roles_id;
+					for (employee of employeeResults) {
+						if (
+							employee.first_name + " " + employee.last_name ===
+							chooseEmployeeName
+						) {
+							employee_id = employee.id;
+						}
+					}
+					for (updatedRole of rolesResults) {
+						if (updatedRole.title === updateEmployeeRole) {
+							roles_id = updatedRole.id;
+						}
+					}
+					db.query(
+						`UPDATE employee
+						 SET role_id = "${roles_id}"
+						 WHERE id = ${employee_id}`,
+						(err) => {
+							if (err) throw err;
+							console.log("Updated employee's role");
+							init();
+						}
+					);
+				});
+		});
+	});
+};
 
 // initialization function
 init();
